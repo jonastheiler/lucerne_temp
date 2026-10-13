@@ -1,0 +1,32 @@
+name: Retrain
+
+on:
+  schedule:
+    - cron: "0 12 1 * *" # monthly, so the backtest gains a month and the model a month of data
+  workflow_dispatch: # also started by the daily job when monitoring fails
+
+permissions:
+  contents: write # commit the model and the backtest report
+
+concurrency:
+  group: commit-to-main
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      # Fails if the new model doesn't pass the gate; the current model then stays.
+      - name: Backtest, train and promote
+        run: uv run --locked python -m lucerne_temp.train
+
+      - name: Commit
+        if: always() # also keep the report of a rejected model
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add model reports
+          git diff --cached --quiet || git commit -m "retrain: $(date -u +%F)"
+          git pull --rebase && git push

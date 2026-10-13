@@ -1,0 +1,42 @@
+name: Daily forecast
+
+on:
+  schedule:
+    - cron: "15 9 * * *" # ISSUE_HOUR_UTC; ECMWF's 00 UTC run is published by then
+  workflow_dispatch:
+
+permissions:
+  contents: write # commit data, forecasts and reports
+  actions: write # start a retrain when monitoring fails
+
+concurrency:
+  group: commit-to-main # never two jobs pushing at once
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Update data and forecast tomorrow
+        run: uv run --locked python -m lucerne_temp.forecast
+
+      - name: Score past forecasts
+        id: monitor
+        run: uv run --locked python -m lucerne_temp.monitor
+
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data forecasts reports
+          git diff --cached --quiet || git commit -m "forecast: $(date -u +%F)"
+          git pull --rebase && git push
+
+      - name: Retrain if the model degraded
+        if: failure() && steps.monitor.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run retrain.yml
