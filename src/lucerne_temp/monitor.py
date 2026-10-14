@@ -65,7 +65,13 @@ def monitor(data_dir: Path = DATA_DIR, report_dir: Path = REPORT_DIR) -> list[st
         f"| {day} | {r.model:.2f} | {r.raw:.2f} | {r.inside:.0%} |"
         for day, r in daily.iloc[::-1].iterrows()
     )
-    status = "\n".join(f"- ⚠️ {p}" for p in problems) or "- ✅ healthy"
+    if model["n"] < MIN_HOURS:
+        status = f"not judged yet ({model['n']} of {MIN_HOURS} hours needed)"
+        print(status)
+        status = f"- ⏳ {status}"
+    else:
+        print(*problems or ["healthy"], sep="\n")
+        status = "\n".join(f"- ⚠️ {p}" for p in problems) or "- ✅ healthy"
     report_dir.mkdir(exist_ok=True)
     (report_dir / "monitoring.md").write_text(
         f"""# Live monitoring
@@ -91,9 +97,7 @@ Last {WINDOW.days} days, {model["n"]} scored hours.
 
 
 def main() -> None:
-    problems = monitor()
-    print(*problems or ["healthy"], sep="\n")
-    if problems:
+    if monitor():
         sys.exit(1)
 
 

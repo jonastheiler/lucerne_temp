@@ -2,7 +2,7 @@
 
 Last 28 days, 15 scored hours.
 
-- ✅ healthy
+- ⏳ not judged yet (15 of 168 hours needed)
 
 | | MAE (°C) | Pinball loss | 10-90% interval coverage |
 |---|---|---|---|
