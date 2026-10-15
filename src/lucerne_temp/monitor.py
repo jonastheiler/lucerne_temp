@@ -40,17 +40,17 @@ def check(model: dict[str, float], raw: dict[str, float]) -> list[str]:
     return problems
 
 
-def monitor(data_dir: Path = DATA_DIR, report_dir: Path = REPORT_DIR) -> list[str]:
-    df = scored(data_dir)
-    if df.empty:
-        print("no forecasts to score yet")
-        return []
+def recent_scores(df: pd.DataFrame) -> tuple[dict[str, float], dict[str, float]]:
+    """Scores of the corrected and the raw forecast over the last WINDOW."""
     recent = df[df["timestamp"] > df["timestamp"].max() - WINDOW]
     model = score(recent["temperature"], recent[COLUMNS])
     raw = score(recent["temperature"], pd.DataFrame({c: recent["temperature_2m"] for c in COLUMNS}))
-    problems = check(model, raw)
+    return model, raw
 
-    daily = (
+
+def daily(df: pd.DataFrame, days: int = 14) -> pd.DataFrame:
+    """Mean absolute errors and interval coverage per UTC day, newest first."""
+    return (
         df.assign(
             day=df["timestamp"].dt.strftime("%Y-%m-%d"),
             model=(df["temperature"] - df["q50"]).abs(),
@@ -59,11 +59,22 @@ def monitor(data_dir: Path = DATA_DIR, report_dir: Path = REPORT_DIR) -> list[st
         )
         .groupby("day")[["model", "raw", "inside"]]
         .mean()
-        .tail(14)
+        .tail(days)
+        .iloc[::-1]
     )
+
+
+def monitor(data_dir: Path = DATA_DIR, report_dir: Path = REPORT_DIR) -> list[str]:
+    df = scored(data_dir)
+    if df.empty:
+        print("no forecasts to score yet")
+        return []
+    model, raw = recent_scores(df)
+    problems = check(model, raw)
+
     days = "\n".join(
         f"| {day} | {r.model:.2f} | {r.raw:.2f} | {r.inside:.0%} |"
-        for day, r in daily.iloc[::-1].iterrows()
+        for day, r in daily(df).iterrows()
     )
     if model["n"] < MIN_HOURS:
         status = f"not judged yet ({model['n']} of {MIN_HOURS} hours needed)"

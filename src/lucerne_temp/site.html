@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lucerne Temperature Forecast</title>
+<meta name="description" content="Tomorrow's hourly temperature for Lucerne: ECMWF corrected with MeteoSwiss measurements, and how well it has done.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  /* One column: headline forecast, scores, hourly chart, daily table. */
+  :root {
+    --bg: #f6f8f8; --panel: #ffffff; --fg: #17262b; --muted: #5a6b70; --line: #dbe3e4;
+    --observed: #17262b; --forecast: #1f7a8c; --raw: #9aa8ab;
+    --ok: #2e7d4f; --wait: #9a6b00; --bad: #b3261e;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101a1d; --panel: #16252a; --fg: #e3ecee; --muted: #93a5aa; --line: #2a3d43;
+      --observed: #e3ecee; --forecast: #4fb3c6; --raw: #64777c;
+      --ok: #6cc28f; --wait: #e0b04a; --bad: #f08a80;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--sans); }
+  main { max-width: 960px; margin: 0 auto; padding: 40px 16px 56px; display: grid; gap: 24px; }
+  h1 { font: 600 2rem/1.15 var(--serif); margin: 0; text-wrap: balance; }
+  h2 { font-size: 1.05rem; font-weight: 500; margin: 0; }
+  .sub, .note { color: var(--muted); margin: 4px 0 0; }
+  .note { font-size: .85rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; min-width: 0; }
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
+  .label { color: var(--muted); font-size: .8rem; letter-spacing: .02em; }
+  .big { font: 400 2.1rem/1.1 var(--serif); font-variant-numeric: tabular-nums; margin-top: 6px; }
+  .big small { font: 400 .95rem var(--sans); color: var(--muted); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: .95rem; }
+  .status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+  .status.ok { color: var(--ok); } .status.wait { color: var(--wait); } .status.bad { color: var(--bad); }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: .85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 16px; border-top: 2px solid; }
+  .sw.dash { border-top-style: dashed; }
+  .sw.band { height: 10px; border: 0; border-radius: 2px; background: var(--forecast); opacity: .25; }
+  .chart { position: relative; margin-top: 12px; min-height: 320px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart text { fill: var(--muted); font: 12px var(--sans); }
+  .tip { position: absolute; top: 24px; pointer-events: none; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); padding: 6px 10px; font-size: .8rem;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tip .when { color: var(--muted); }
+  .tip div { display: flex; align-items: center; gap: 6px; }
+  .scroll { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-size: .8rem; font-weight: 500; }
+  footer { color: var(--muted); font-size: .85rem; }
+  a { color: var(--forecast); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Lucerne temperature forecast</h1>
+    <p class="sub">{{DAY}}: between <b>{{LOW}}</b> and <b>{{HIGH}} °C</b>, according to the corrected ECMWF forecast.</p>
+  </header>
+
+  <section class="tiles" aria-label="Summary">
+    <div class="card"><div class="label">High, {{DAY}}</div><div class="big">{{HIGH}} <small>°C</small></div></div>
+    <div class="card"><div class="label">Low, {{DAY}}</div><div class="big">{{LOW}} <small>°C</small></div></div>
+    <div class="card"><div class="label">Average error, last {{WINDOW}} days</div><div class="big">{{MAE}} <small>°C</small></div><p class="note">Raw ECMWF: {{MAE_RAW}} °C</p></div>
+    <div class="card"><div class="label">Inside the 10–90% range</div><div class="big">{{COVERAGE}}</div><p class="note">Should be about 80%</p></div>
+  </section>
+
+  <p class="status {{STATE}}">{{STATUS}}</p>
+
+  <section class="card">
+    <h2>Hourly temperature</h2>
+    <p class="note">Measured at MeteoSwiss station Luzern against each day-ahead forecast. Times are local.</p>
+    <div class="legend">
+      <span><i class="sw" style="border-color: var(--observed)"></i>Measured</span>
+      <span><i class="sw" style="border-color: var(--forecast)"></i>Corrected forecast</span>
+      <span><i class="sw band"></i>10–90% range</span>
+      <span><i class="sw dash" style="border-color: var(--raw)"></i>Raw ECMWF</span>
+    </div>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section class="card">
+    <h2>Accuracy by day</h2>
+    <p class="note">Average error in °C, by UTC day. Lower is better. {{HOURS}} of the {{MIN_HOURS}} hours needed for a verdict are scored.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Day</th><th>Corrected</th><th>Raw ECMWF</th><th>In range</th></tr></thead>
+        <tbody>
+{{DAYS}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>Forecast issued {{ISSUED}}. Updated daily by <a href="https://github.com/jonastheiler/lucerne_temp">lucerne_temp</a>.</footer>
+</main>
+
+<script id="data" type="application/json">{{DATA}}</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+(function () {
+  const rows = JSON.parse(document.getElementById('data').textContent).map((r) => ({ ...r, t: new Date(r.t) }));
+  const box = document.getElementById('chart');
+  const fmt = d3.format('.1f');
+  const color = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  function draw() {
+    box.textContent = '';
+    const W = Math.max(300, box.clientWidth), H = 320, top = 10, bottom = H - 28;
+    const vals = rows.flatMap((r) => [r.obs, r.ecmwf, r.q10, r.q90]).filter((v) => v != null);
+    const y = d3.scaleLinear([d3.min(vals) - 1, d3.max(vals) + 1], [bottom, top]).nice();
+    const svg = d3.select(box).append('svg').attr('viewBox', `0 0 ${W} ${H}`);
+
+    const probe = svg.append('text').text(`${y.domain()[1]}°`);
+    const left = Math.ceil(probe.node().getComputedTextLength()) + 10;
+    probe.remove();
+    const x = d3.scaleTime(d3.extent(rows, (r) => r.t), [left, W - 8]);
+
+    svg.append('g').selectAll('line').data(y.ticks(6)).join('line')
+      .attr('x1', left).attr('x2', W - 8).attr('y1', y).attr('y2', y).attr('stroke', color('--line'));
+    svg.append('g').selectAll('text').data(y.ticks(6)).join('text')
+      .attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((d) => `${d}°`);
+
+    const [t0, t1] = x.domain();
+    const step = Math.max(1, Math.ceil(d3.timeDay.count(t0, t1) / Math.floor((W - left) / 80)));
+    svg.append('g').selectAll('line').data(d3.timeDay.range(d3.timeDay.ceil(t0), t1)).join('line')
+      .attr('x1', x).attr('x2', x).attr('y1', top).attr('y2', bottom).attr('stroke', color('--line'));
+    const noons = d3.timeDay.range(d3.timeDay.floor(t0), t1).map((d) => d3.timeHour.offset(d, 12))
+      .filter((d, i) => d >= t0 && d <= t1 && i % step === 0);
+    svg.append('g').selectAll('text').data(noons).join('text')
+      .attr('x', x).attr('y', H - 8).attr('text-anchor', 'middle').text(d3.timeFormat(step > 1 ? '%-d %b' : '%a %-d'));
+
+    const lastObs = d3.max(rows.filter((r) => r.obs != null), (r) => r.t);
+    if (lastObs) {
+      svg.append('line').attr('x1', x(lastObs)).attr('x2', x(lastObs)).attr('y1', top).attr('y2', bottom)
+        .attr('stroke', color('--muted')).attr('stroke-dasharray', '3 3');
+    }
+
+    svg.append('path').datum(rows).attr('fill', color('--forecast')).attr('fill-opacity', 0.18)
+      .attr('d', d3.area().defined((r) => r.q10 != null).x((r) => x(r.t)).y0((r) => y(r.q10)).y1((r) => y(r.q90)));
+    const series = [['ecmwf', '--raw', '4 4'], ['q50', '--forecast', null], ['obs', '--observed', null]];
+    for (const [key, col, dash] of series) {
+      svg.append('path').datum(rows).attr('fill', 'none').attr('stroke', color(col)).attr('stroke-width', 2)
+        .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round').attr('stroke-dasharray', dash)
+        .attr('d', d3.line().defined((r) => r[key] != null).x((r) => x(r.t)).y((r) => y(r[key])));
+    }
+
+    const rule = svg.append('line').attr('y1', top).attr('y2', bottom).attr('stroke', color('--muted')).style('display', 'none');
+    const tip = document.createElement('div');
+    tip.className = 'tip'; tip.hidden = true; box.append(tip);
+    const when = d3.timeFormat('%a %-d %b, %H:%M');
+    const nearest = d3.bisector((r) => r.t).center;
+
+    svg.append('rect').attr('x', left).attr('width', W - 8 - left).attr('height', bottom).attr('fill', 'transparent')
+      .on('pointerleave', () => { rule.style('display', 'none'); tip.hidden = true; })
+      .on('pointermove', (event) => {
+        const r = rows[nearest(rows, x.invert(d3.pointer(event)[0]))];
+        const px = x(r.t);
+        rule.attr('x1', px).attr('x2', px).style('display', null);
+        tip.textContent = '';
+        const head = document.createElement('div'); head.className = 'when'; head.textContent = when(r.t); tip.append(head);
+        const add = (col, text) => {
+          const line = document.createElement('div'), sw = document.createElement('i');
+          sw.className = 'sw'; sw.style.borderColor = color(col); line.append(sw, text); tip.append(line);
+        };
+        if (r.obs != null) add('--observed', `Measured ${fmt(r.obs)} °C`);
+        if (r.q50 != null) add('--forecast', `Corrected ${fmt(r.q50)} °C (${fmt(r.q10)}–${fmt(r.q90)})`);
+        if (r.ecmwf != null) add('--raw', `Raw ECMWF ${fmt(r.ecmwf)} °C`);
+        tip.hidden = false;
+        const scale = box.clientWidth / W, width = tip.offsetWidth;
+        let left_ = px * scale + 12;
+        if (left_ + width > box.clientWidth) left_ = px * scale - width - 12;
+        tip.style.left = `${Math.max(0, left_)}px`;
+      });
+  }
+
+  draw();
+  let width = box.clientWidth;
+  new ResizeObserver(() => { if (box.clientWidth !== width) { width = box.clientWidth; draw(); } }).observe(box);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+})();
+</script>
+</body>
+</html>

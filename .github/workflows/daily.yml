@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write # commit data, forecasts and reports
   actions: write # start a retrain when monitoring fails
+  pages: write # publish the dashboard
+  id-token: write # required by actions/deploy-pages
 
 concurrency:
   group: commit-to-main # never two jobs pushing at once
@@ -26,6 +28,15 @@ jobs:
         id: monitor
         run: uv run --locked python -m lucerne_temp.monitor
 
+      - name: Build dashboard
+        if: always()
+        run: uv run --locked python -m lucerne_temp.site
+
+      - uses: actions/upload-pages-artifact@v3
+        if: always()
+        with:
+          path: site
+
       - name: Commit
         if: always()
         run: |
@@ -40,3 +51,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run retrain.yml
+
+  dashboard:
+    needs: forecast
+    if: ${{ !cancelled() }} # publish even when monitoring asks for a retrain
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

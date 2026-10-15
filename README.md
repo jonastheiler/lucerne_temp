@@ -21,7 +21,8 @@ by a model trained only on earlier data):
 The correction lowers the error by 19% and beats the raw forecast in 17 of 20 months.
 The gains are largest from November to April, the months in which raw ECMWF is
 worst. Details: [reports/backtest.md](reports/backtest.md).
-Live scores: [reports/monitoring.md](reports/monitoring.md).
+Live scores: [reports/monitoring.md](reports/monitoring.md), and as a chart on the
+[dashboard](https://jonastheiler.github.io/lucerne_temp/).
 
 ## How it works
 
