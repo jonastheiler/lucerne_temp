@@ -1,11 +1,35 @@
 # lucerne-temp
 
-Better next-day temperature forecasts for Lucerne. A global weather model (ECMWF) is
-corrected with MeteoSwiss measurements, and every forecast comes with an uncertainty
-interval. The project is a small but complete MLOps setup: daily data and forecasts,
-a backtest, a promotion gate, live monitoring and automatic retraining.
+I wanted to learn MLOps on a real example, not just in theory or on a synthetic
+dataset. This project is the result: next-day temperature forecasts for Lucerne,
+where a global weather model (ECMWF) is corrected with MeteoSwiss measurements and
+every forecast comes with an uncertainty range.
 
-It's meant to be read. The code is about 700 lines with four dependencies.
+**Why correct ECMWF?** ECMWF runs one of the best global weather models. Its free
+open data comes on a 0.25° grid, about 28 km north–south and 19 km east–west at
+Lucerne ([ECMWF](https://www.ecmwf.int/node/28999), [Open-Meteo](https://open-meteo.com/en/docs/ecmwf-api)).
+A grid cell that size averages lake, town and mountain slopes, so it can't see what
+makes Lucerne's weather local: the lake, cold air collecting in the basin, or winter
+fog. Those errors repeat in similar weather, so a model can learn them from past
+forecasts and measurements.
+
+It's a learning project, for me to learn the basics and for other data scientists
+who want to see how MLOps works in practice. It covers:
+
+- **Daily data and forecasts:** every day, GitHub Actions fetches new measurements
+  and ECMWF forecasts and forecasts the next day.
+- **Backtest:** every month is predicted by a model trained only on earlier data.
+- **Promotion gate:** a new model replaces the current one only if it beats both
+  the baselines and the current model.
+- **Live monitoring:** every forecast is scored against what was actually measured.
+- **Automatic retraining:** monthly, or as soon as monitoring sees the model degrade.
+
+**[Live dashboard](https://jonastheiler.github.io/lucerne_temp/)**: tomorrow's forecast
+with its 10–90% range, the last 14 days of forecasts against measurements and raw
+ECMWF, and how accurate the model has been so far. It updates after every daily run.
+
+The code is small enough to read in one sitting: about 800 lines of Python, four
+dependencies, and no MLOps framework hiding the steps.
 
 ## Results
 
