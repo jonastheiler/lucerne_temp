@@ -155,10 +155,16 @@ tests/           # one file per module, including the leakage test
 
 ## Known limitations
 
-- **Training and serving use slightly different lead times.** Training uses forecasts
-  issued about 24 hours ahead; the daily job forecasts 13 to 37 hours past its issue
-  time. Live monitoring measures the effect.
+- **Training and serving use close, but not identical, lead times.** Training uses the
+  archived forecasts from the ECMWF run a day earlier; the daily job uses the latest
+  run available in the morning. Live monitoring measures the effect.
 - **The archive only goes back to March 2024**, so the backtest has just one full
   winter in it.
+- **One interval width for all weather.** The calibration margin is a single number, the
+  same in summer and winter, fog and sunshine. So the interval is probably too wide in calm
+  weather and too narrow in difficult weather. A margin per season, or one that scales with
+  the predicted spread, would fix that.
+- **GitHub Actions doesn't guarantee timing.** Scheduled runs often start hours late.
+  That's fine for a learning project; a real service would need its own scheduler.
 - **One station.** The same code could loop over several stations, with altitude and
   location as features.
