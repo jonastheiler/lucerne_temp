@@ -89,15 +89,25 @@ account and no secrets, and every change to data, model and score is versioned.
 
 ## Getting started
 
-You need [uv](https://docs.astral.sh/uv/). No API keys.
+You need [uv](https://docs.astral.sh/uv/). No API keys. The data and the current model
+are in the repo, so you can forecast right after cloning:
 
 ```bash
-uv run python -m lucerne_temp.data 2024-03-01 2026-10-13   # backfill (~2 min)
-uv run python -m lucerne_temp.train                         # backtest, train, promote
-uv run python -m lucerne_temp.forecast                      # forecast tomorrow
-uv run python -m lucerne_temp.monitor                       # score past forecasts
+git clone https://github.com/jonastheiler/lucerne_temp.git
+cd lucerne_temp
+uv run python -m lucerne_temp.forecast   # update the last 3 days of data, forecast tomorrow
+uv run python -m lucerne_temp.monitor    # score past forecasts
+uv run python -m lucerne_temp.site       # build the dashboard in site/index.html
+uv run python -m lucerne_temp.train      # backtest, train, promote if it passes the gate
 uv run pytest
 ```
+
+To rebuild all data from scratch (~2 min), run
+`uv run python -m lucerne_temp.data 2024-03-01`. Without an end date it goes up to today.
+
+These commands write to `data/`, `forecasts/`, `reports/` and, if a new model
+passes the gate, `model/`. To undo that:
+`git restore . && git clean -fd data forecasts reports model`.
 
 ## Project layout
 
