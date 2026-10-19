@@ -133,21 +133,21 @@ tests/           # one file per module, including the leakage test
 ## Design decisions
 
 - **Correct a weather model rather than replace it.** No single-station model will
-  beat ECMWF. But ECMWF's 25 km grid can't see the lake or the local terrain, and those
-  errors repeat. Correcting them is what national weather services do, too.
+  beat ECMWF, but its errors at Lucerne repeat and can be learned. National weather
+  services do the same.
 - **Train on forecasts as they were issued.** The archive holds the forecast made about a
   day before each hour, not the latest one, which would make the backtest look too good.
   A test checks that no feature uses an observation from after its issue time.
 - **Intervals must be calibrated, not just predicted.** On their own, the quantile models
-  were overconfident: their 10–90% interval held only 63% of the observations. Conformalized
-  quantile regression widens the interval by a margin measured on held-out data, which
-  brings it to 81%.
+  were overconfident: their 10–90% interval held too few observations. Conformalized
+  quantile regression widens the interval by a margin measured on held-out data.
 - **A simple baseline sets the bar.** "ECMWF plus the typical error at that hour" is
   what a model with more inputs has to beat to justify its complexity.
 - **A gate before promotion.** A new model replaces the current one only if it beats both
-  baselines and isn't worse than the current model. Otherwise the job fails visibly.
-- **Monitoring that acts.** If the live forecast is no better than raw ECMWF over 4 weeks,
-  or its intervals stop holding about 80%, the daily job fails and starts a retrain.
+  baselines and isn't clearly worse than the current model. Otherwise the job fails visibly.
+- **Monitoring that acts.** If the live forecast is no better than raw ECMWF over the last
+  few weeks, or its intervals stop holding about 80% of observations, the daily job fails
+  and starts a retrain.
 - **Files instead of an API.** Forecasts change once a day, so `forecasts/latest.json`
   serves them. A web server would add cost and moving parts without making them fresher.
 - **Fail loudly, retry politely.** Data is validated before anything is written. Stale
