@@ -111,14 +111,23 @@ passes the gate, `model/`. To undo that:
 
 ## Project layout
 
+In the order the code runs:
+
 ```
 src/lucerne_temp/
 ├── config.py    # station, weather model, quantiles
 ├── data.py      # download, validate, store
-├── model.py     # features, LightGBM, calibration, metrics
-├── train.py     # backtest, baselines, promotion gate
 ├── forecast.py  # daily forecast
-└── monitor.py   # live scoring, retrain trigger
+├── model.py     # features, LightGBM, calibration, metrics
+├── monitor.py   # live scoring, retrain trigger
+├── site.py      # build the dashboard page
+├── site.html    # the dashboard template
+└── train.py     # backtest, baselines, promotion gate
+tests/           # one file per module, including the leakage test
+.github/workflows/
+├── daily.yml    # forecast, monitor, dashboard; starts a retrain if degraded
+├── retrain.yml  # monthly, or when started by daily.yml
+└── ci.yml       # lint and tests on main and pull requests
 ```
 
 ## Design decisions
