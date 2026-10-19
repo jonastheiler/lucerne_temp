@@ -55,19 +55,25 @@ flowchart LR
     M[MeteoSwiss<br/>station LUZ] --> D
     E[Open-Meteo<br/>ECMWF forecasts] --> D
     subgraph "daily, 09:15 UTC"
-        D[update data] --> F[forecast tomorrow] --> S[score past forecasts]
+        D[update data] --> F[forecast tomorrow] --> S[score past forecasts] --> W[publish dashboard]
     end
     S -- degraded --> R
     subgraph "monthly, or when degraded"
         R[backtest + train] --> G{better than<br/>baselines and<br/>current model?}
         G -- yes --> P[promote]
+        G -- no --> K[keep current model,<br/>job fails]
     end
 ```
 
 The model doesn't predict the temperature, but **how wrong ECMWF will be**: observed minus
 forecast. It does that for the 10%, 50% and 90% quantiles. Its inputs are the ECMWF forecast
-(temperature, dew point, cloud, wind, pressure, rain), the hour and day of year, and how
-wrong ECMWF was over the past 24 hours.
+(temperature, dew point, cloud, wind, pressure, rain), the hour and day of year, and
+`recent_error`.
+
+`recent_error` is how far ECMWF's day-ahead forecasts were off, on average, over the
+24 hours before the forecast is made. Errors like that tend to persist: if fog or cold air in
+the basin made ECMWF 2 °C too warm today, it will probably be too warm tomorrow as well.
+It only uses measurements published by then, so the model never sees the future.
 
 Everything runs in GitHub Actions and is stored in the repo: data as monthly Parquet
 files, models as LightGBM text files, reports as Markdown. That means no server, no cloud
