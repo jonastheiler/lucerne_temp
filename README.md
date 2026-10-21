@@ -168,10 +168,13 @@ tests/           # one file per module, including the leakage test
   run available in the morning. Live monitoring measures the effect.
 - **The archive only goes back to March 2024**, so the backtest has just one full
   winter in it.
-- **One interval width for all weather.** The calibration margin is a single number, the
-  same in summer and winter, fog and sunshine. So the interval is probably too wide in calm
-  weather and too narrow in difficult weather. A margin per season, or one that scales with
-  the predicted spread, would fix that.
+- **One interval width for all weather.** The 10–90% interval is about 4 °C wide in every
+  month, although the average error ranges from 0.9 °C in calm autumn weeks to 2.0 °C in
+  January. So it is too wide in calm weather and too narrow in difficult weather. The
+  calibration margin isn't the cause: a margin per season, one that scales with the
+  predicted spread, or one measured on recent weeks did no better in the backtest. The
+  quantile models themselves would have to adapt the width, which their strong
+  regularisation may prevent.
 - **GitHub Actions doesn't guarantee timing.** Scheduled runs often start hours late.
   That's fine for a learning project; a real service would need its own scheduler.
 - **One station.** The same code could loop over several stations, with altitude and
