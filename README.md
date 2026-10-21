@@ -154,7 +154,8 @@ tests/           # one file per module, including the leakage test
   baselines and isn't clearly worse than the current model. Otherwise the job fails visibly.
 - **Monitoring that acts.** If the live forecast is no better than raw ECMWF over the last
   few weeks, or its intervals stop holding about 80% of observations, the daily job fails
-  and starts a retrain.
+  and starts a retrain. Coverage is judged only after three weeks, because a single calm
+  or stormy week pushes it out of range on its own.
 - **Files instead of an API.** Forecasts change once a day, so `forecasts/latest.json`
   serves them. A web server would add cost and moving parts without making them fresher.
 - **Fail loudly, retry politely.** Data is validated before anything is written. Stale

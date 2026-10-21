@@ -17,6 +17,7 @@ from lucerne_temp.model import COLUMNS, score
 WINDOW = pd.Timedelta(days=28)
 MIN_HOURS = 7 * 24  # don't judge the model on a handful of days
 COVERAGE_RANGE = (0.65, 0.92)  # the 10-90% interval should hold about 80% of hours
+COVERAGE_MIN_HOURS = 21 * 24  # a calm or a stormy week alone pushes coverage out of range
 
 
 def scored(data_dir: Path = DATA_DIR) -> pd.DataFrame:
@@ -34,7 +35,7 @@ def check(model: dict[str, float], raw: dict[str, float]) -> list[str]:
     if model["mae"] >= raw["mae"]:
         problems.append(f"MAE {model['mae']:.2f} no better than raw ECMWF ({raw['mae']:.2f})")
     low, high = COVERAGE_RANGE
-    if not low <= model["coverage_80"] <= high:
+    if model["n"] >= COVERAGE_MIN_HOURS and not low <= model["coverage_80"] <= high:
         coverage = model["coverage_80"]
         problems.append(f"interval coverage {coverage:.0%} outside [{low:.0%}, {high:.0%}]")
     return problems
@@ -83,6 +84,10 @@ def monitor(data_dir: Path = DATA_DIR, report_dir: Path = REPORT_DIR) -> list[st
     else:
         print(*problems or ["healthy"], sep="\n")
         status = "\n".join(f"- ⚠️ {p}" for p in problems) or "- ✅ healthy"
+        if model["n"] < COVERAGE_MIN_HOURS:
+            pending = f"coverage not judged yet ({model['n']} of {COVERAGE_MIN_HOURS} hours needed)"
+            print(pending)
+            status += f"\n- ⏳ {pending}"
     report_dir.mkdir(exist_ok=True)
     (report_dir / "monitoring.md").write_text(
         f"""# Live monitoring

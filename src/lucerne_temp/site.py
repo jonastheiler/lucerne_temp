@@ -12,7 +12,15 @@ import pandas as pd
 
 from lucerne_temp.config import DATA_DIR, LOCAL_TZ
 from lucerne_temp.data import load
-from lucerne_temp.monitor import MIN_HOURS, WINDOW, check, daily, recent_scores, scored
+from lucerne_temp.monitor import (
+    COVERAGE_MIN_HOURS,
+    MIN_HOURS,
+    WINDOW,
+    check,
+    daily,
+    recent_scores,
+    scored,
+)
 
 SITE_DIR = Path("site")
 TEMPLATE = Path(__file__).with_name("site.html")
@@ -44,6 +52,11 @@ def status(model: dict[str, float], raw: dict[str, float]) -> tuple[str, str]:
     problems = check(model, raw)
     if problems:
         return "bad", "Degraded: " + "; ".join(problems) + "."
+    if model["n"] < COVERAGE_MIN_HOURS:
+        return (
+            "ok",
+            "Healthy: better than raw ECMWF. The uncertainty range is judged after 3 weeks.",
+        )
     return "ok", "Healthy: better than raw ECMWF, with a well-sized uncertainty range."
 
 
