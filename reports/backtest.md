@@ -1,11 +1,11 @@
 # Backtest
 
 Rolling-origin backtest: each month is forecast by a model trained only on earlier data.
-2025-03-01 to 2026-10-21, 14370 hours.
+2025-03-01 to 2026-10-22, 14391 hours.
 
 | Method | MAE (°C) | Pinball loss | 10-90% interval coverage (target 80%) |
 |---|---|---|---|
-| raw | 1.49 | 0.747 | 2% |
+| raw | 1.49 | 0.746 | 2% |
 | hourly_bias | 1.41 | 0.453 | 79% |
 | lightgbm | 1.21 | 0.385 | 81% |
 
@@ -32,4 +32,4 @@ Rolling-origin backtest: each month is forecast by a model trained only on earli
 | 2026-07 | 1.60 | 1.46 | 1.27 |
 | 2026-08 | 1.47 | 1.37 | 1.29 |
 | 2026-09 | 0.99 | 1.08 | 0.92 |
-| 2026-10 | 0.93 | 1.09 | 0.93 |
+| 2026-10 | 0.92 | 1.08 | 0.93 |
