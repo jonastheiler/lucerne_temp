@@ -46,7 +46,8 @@ def live(mae: float, coverage: float, n: int = 600) -> dict:
     ("model", "problems"),
     [
         (live(1.2, 0.8), 0),
-        (live(1.6, 0.8), 1),  # worse than raw
+        (live(1.7, 0.8), 1),  # worse than raw
+        (live(1.55, 0.8), 0),  # a near-tie with raw isn't a reason to retrain
         (live(1.2, 0.5), 1),  # interval too narrow
         (live(1.2, 0.97, n=188), 0),  # too few hours to judge coverage
         (live(1.6, 0.5, n=24), 0),  # too few hours to judge

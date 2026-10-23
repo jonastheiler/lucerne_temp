@@ -152,10 +152,12 @@ tests/           # one file per module, including the leakage test
   what a model with more inputs has to beat to justify its complexity.
 - **A gate before promotion.** A new model replaces the current one only if it beats both
   baselines and isn't clearly worse than the current model. Otherwise the job fails visibly.
-- **Monitoring that acts.** If the live forecast is no better than raw ECMWF over the last
-  few weeks, or its intervals stop holding about 80% of observations, the daily job fails
-  and starts a retrain. Coverage is judged only after three weeks, because a single calm
-  or stormy week pushes it out of range on its own.
+- **Monitoring that acts.** If the live forecast is clearly worse than raw ECMWF over the
+  last few weeks, or its intervals stop holding about 80% of observations, the daily job
+  fails and starts a retrain. "Clearly" means by more than 0.1 °C: a few weeks of hours
+  can't tell a near-tie from a real loss, and a retrain can't fix a tie anyway. The 0.1 is
+  a judgement call, not a derived number. Coverage is judged only after three weeks,
+  because a single calm or stormy week pushes it out of range on its own.
 - **Files instead of an API.** Forecasts change once a day, so `forecasts/latest.json`
   serves them. A web server would add cost and moving parts without making them fresher.
 - **Fail loudly, retry politely.** Data is validated before anything is written. Stale

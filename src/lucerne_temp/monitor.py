@@ -16,6 +16,7 @@ from lucerne_temp.model import COLUMNS, score
 
 WINDOW = pd.Timedelta(days=28)
 MIN_HOURS = 7 * 24  # don't judge the model on a handful of days
+MAE_TOLERANCE = 0.1  # °C; a few weeks of hours can't tell a near-tie from a real loss
 COVERAGE_RANGE = (0.65, 0.92)  # the 10-90% interval should hold about 80% of hours
 COVERAGE_MIN_HOURS = 21 * 24  # a calm or a stormy week alone pushes coverage out of range
 
@@ -32,8 +33,8 @@ def check(model: dict[str, float], raw: dict[str, float]) -> list[str]:
     if model["n"] < MIN_HOURS:
         return []
     problems = []
-    if model["mae"] >= raw["mae"]:
-        problems.append(f"MAE {model['mae']:.2f} no better than raw ECMWF ({raw['mae']:.2f})")
+    if model["mae"] > raw["mae"] + MAE_TOLERANCE:
+        problems.append(f"MAE {model['mae']:.2f} worse than raw ECMWF ({raw['mae']:.2f})")
     low, high = COVERAGE_RANGE
     if model["n"] >= COVERAGE_MIN_HOURS and not low <= model["coverage_80"] <= high:
         coverage = model["coverage_80"]
