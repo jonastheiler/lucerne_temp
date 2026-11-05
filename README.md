@@ -73,9 +73,10 @@ flowchart LR
 ```
 
 The model doesn't predict the temperature, but **how wrong ECMWF will be**: observed minus
-forecast. It does that for the 10%, 50% and 90% quantiles. Its inputs are the ECMWF forecast
-(temperature, dew point, cloud, wind, pressure, rain), the hour and day of year, and
-`recent_error`.
+forecast. It does that for the 10%, 50% and 90% quantiles: the error is expected to fall
+below each in 10%, 50% and 90% of hours, so the 10–90% range should hold 80% of them.
+Its inputs are the ECMWF forecast (temperature, dew point, cloud, wind, pressure, rain),
+the hour and day of year, and `recent_error`.
 
 `recent_error` is how far ECMWF's day-ahead forecasts were off, on average, over the
 24 hours before the forecast is made. Errors like that tend to persist: if fog or cold air in

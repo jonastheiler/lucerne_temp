@@ -77,6 +77,8 @@ class Model:
 
 
 def fit_boosters(df: pd.DataFrame) -> dict[float, lgb.Booster]:
+    # Same data, one model per quantile: alpha weights the two sides of the pinball loss,
+    # so each model settles where a share alpha of the residuals falls below it.
     residual = df["temperature"] - df["temperature_2m"]
     dataset = lgb.Dataset(df[FEATURES], residual, free_raw_data=False)
     return {q: lgb.train(PARAMS | {"alpha": q}, dataset, ROUNDS) for q in QUANTILES}
@@ -84,7 +86,7 @@ def fit_boosters(df: pd.DataFrame) -> dict[float, lgb.Booster]:
 
 def predict_boosters(boosters: dict[float, lgb.Booster], df: pd.DataFrame) -> np.ndarray:
     residuals = np.column_stack([boosters[q].predict(df[FEATURES]) for q in QUANTILES])
-    # Separately trained quantiles can cross; sorting fixes that without changing the median.
+    # Separately trained quantiles can cross; sorting restores low <= median <= high.
     return df[["temperature_2m"]].to_numpy() + np.sort(residuals, axis=1)
 
 
@@ -101,8 +103,11 @@ def fit(df: pd.DataFrame) -> Model:
         held_out = np.zeros(len(df), dtype=bool)
         held_out[block] = True
         pred = predict_boosters(fit_boosters(df[~held_out]), df[held_out])
+        # Score: how far y falls outside the interval (negative if inside).
         scores.append(np.maximum(pred[:, 0] - y[held_out], y[held_out] - pred[:, -1]))
-    margin = float(np.quantile(np.concatenate(scores), COVERAGE))
+    # An hour is inside the widened interval exactly when its score <= margin,
+    # so the 80% quantile of the scores puts 80% of hours inside.
+    margin =float(np.quantile(np.concatenate(scores), COVERAGE))
     return Model(fit_boosters(df), margin)
 
 
