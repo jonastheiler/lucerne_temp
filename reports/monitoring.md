@@ -1,19 +1,20 @@
 # Live monitoring
 
-Last 28 days, 667 scored hours.
+Last 28 days, 672 scored hours.
 
 - ✅ healthy
 
 | | MAE (°C) | Pinball loss | 10-90% interval coverage |
 |---|---|---|---|
-| Corrected forecast | 1.08 | 0.333 | 90% |
-| Raw ECMWF | 1.18 | 0.591 | n/a |
+| Corrected forecast | 1.10 | 0.338 | 89% |
+| Raw ECMWF | 1.20 | 0.598 | n/a |
 
 ## Last 14 days
 
 | Day | MAE corrected | MAE raw | Coverage |
 |---|---|---|---|
-| 2026-11-10 | 0.47 | 1.72 | 100% |
+| 2026-11-11 | 1.38 | 1.34 | 61% |
+| 2026-11-10 | 0.64 | 1.44 | 96% |
 | 2026-11-09 | 0.47 | 1.25 | 100% |
 | 2026-11-08 | 1.28 | 0.96 | 96% |
 | 2026-11-07 | 0.94 | 0.27 | 100% |
@@ -26,4 +27,3 @@ Last 28 days, 667 scored hours.
 | 2026-10-31 | 1.90 | 1.86 | 62% |
 | 2026-10-30 | 2.03 | 1.68 | 71% |
 | 2026-10-29 | 1.48 | 1.03 | 71% |
-| 2026-10-28 | 0.69 | 0.75 | 96% |
